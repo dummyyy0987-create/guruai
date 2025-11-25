@@ -7,18 +7,6 @@ from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from github_loader import load_github_repo
 
-# Page configuration
-st.set_page_config(
-    page_title="GitHub Repo Chatbot",
-    page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-    menu_items={
-        'Get Help': None,
-        'Report a bug': None,
-        'About': None
-    }
-)
 
 # Title
 st.title("🤖 GitHub Repository Chatbot")
@@ -32,8 +20,7 @@ header {visibility: hidden;}
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-# GitHub repo URL (hardcoded in code)
-github_repo = "https://github.com/Bhavana-Radhakrishna/chat-app.git"  # Change this URL to your desired repository
+github_repo = "https://github.com/dummyyy0987-create/guruai.git"  
 
 # Use default model
 model_name = "llama3"
