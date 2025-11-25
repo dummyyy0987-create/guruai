@@ -59,7 +59,7 @@ if not st.session_state.repo_loaded and github_repo:
             if documents:
                 st.info(f"Step 2/3: Processing {len(documents)} document chunks...")
                 
-                # Create embeddings using HuggingFace (much faster than Ollama)
+                # Create embeddings using HuggingFace
                 try:
                     embeddings = HuggingFaceEmbeddings(
                         model_name="sentence-transformers/all-MiniLM-L6-v2",
