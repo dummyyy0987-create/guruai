@@ -6,10 +6,11 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from github_loader import load_github_repo
+from confluence_loader import fetch_confluence_pages
 
 # Page configuration
 st.set_page_config(
-    page_title="GitHub Repo Chatbot",
+    page_title="GitHub & Confluence Chatbot",
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -21,7 +22,8 @@ st.set_page_config(
 )
 
 # Title
-st.title("🤖 GitHub Repository Chatbot")
+st.title("🤖 GitHub & Confluence Chatbot")
+
 # Hide Streamlit menu and footer
 hide_streamlit_style = """
 <style>
@@ -36,7 +38,7 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 github_repo = "https://github.com/Bhavana-Radhakrishna/chat-app.git"  # Change this URL to your desired repository
 
 # Use default model
-model_name = "llama3"
+model_name = "gemma3"
 
 # Initialize session state
 if "messages" not in st.session_state:
@@ -48,16 +50,23 @@ if "vectorstore" not in st.session_state:
 if "repo_loaded" not in st.session_state:
     st.session_state.repo_loaded = False
 
-# Auto-load repository on first run
+# Auto-load repository and Confluence on first run
 if not st.session_state.repo_loaded and github_repo:
-    with st.spinner("Loading repository... This may take a few minutes."):
+    with st.spinner("Loading repository and Confluence data... This may take a few minutes."):
         try:
             # Load and process the GitHub repository
-            st.info("Step 1/3: Cloning repository...")
-            documents = load_github_repo(github_repo)
+            st.info("Step 1/4: Cloning GitHub repository...")
+            github_documents = load_github_repo(github_repo)
             
-            if documents:
-                st.info(f"Step 2/3: Processing {len(documents)} document chunks...")
+            # Load Confluence data
+            st.info("Step 2/4: Fetching Confluence pages...")
+            confluence_pages = fetch_confluence_pages()
+
+            # Combine documents from GitHub and Confluence
+            all_documents = github_documents + confluence_pages
+            
+            if all_documents:
+                st.info(f"Step 3/4: Processing {len(all_documents)} document chunks...")
                 
                 # Create embeddings using HuggingFace
                 try:
@@ -65,37 +74,37 @@ if not st.session_state.repo_loaded and github_repo:
                         model_name="sentence-transformers/all-MiniLM-L6-v2",
                     )
                     
-                    st.info("Step 3/3: Creating vector database...")
+                    st.info("Step 4/4: Creating vector database...")
                     # Create vector store
                     st.session_state.vectorstore = FAISS.from_documents(
-                        documents, 
+                        all_documents, 
                         embeddings
                     )
                     
                     st.session_state.repo_loaded = True
-                    st.success(f"✅ Successfully loaded {len(documents)} documents from the repository!")
+                    st.success(f"✅ Successfully loaded {len(all_documents)} documents!")
                     
                 except Exception as ollama_error:
                     st.error(f"Error: {str(ollama_error)}")
                     st.error("Make sure required packages are installed.")
                     
             else:
-                st.error("No documents found in the repository.")
+                st.error("No documents found from GitHub or Confluence.")
                 
         except Exception as e:
-            st.error(f"Error loading repository: {str(e)}")
+            st.error(f"Error loading repository and Confluence data: {str(e)}")
 
 # Chat interface
 if st.session_state.repo_loaded:
-    st.markdown("### Chat with the Repository")
-    
+    st.markdown("### Chat with GitHub and Confluence")
+
     # Display chat messages
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     
     # Chat input
-    if prompt := st.chat_input("Ask a question about the repository..."):
+    if prompt := st.chat_input("Ask a question about the repository or Confluence..."):
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         
@@ -119,8 +128,8 @@ if st.session_state.repo_loaded:
                 context = "\n\n".join([doc.page_content for doc in relevant_docs])
                 
                 # Create prompt
-                full_prompt = f"""You are a helpful assistant that answers questions about a GitHub repository.
-Use the following context from the repository to answer the question. If you don't know the answer,
+                full_prompt = f"""You are a helpful assistant that answers questions about GitHub repositories and Confluence pages.
+Use the following context from the repository or Confluence to answer the question. If you don't know the answer,
 just say that you don't know, don't try to make up an answer.
 
 Context: {context}
@@ -164,3 +173,4 @@ else:
     - Explain the architecture of this project
     - Show me how to contribute to this project
     """)
+
